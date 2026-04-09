@@ -9,9 +9,8 @@ pipeline {
 
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
-        IMAGE_NAME = "belalmahmoud81/ecart"
-       IMAGE_TAG  = "${IMAGE_NAME}:${env.BRANCH_NAME}"
-    }
+        IMAGE_NAME   = "belalmahmoud81/ecart"
+        IMAGE_TAG    = "${IMAGE_NAME}:${BUILD_NUMBER}"  
 
     stages {
 
@@ -32,7 +31,7 @@ pipeline {
             steps {
                 sh "mvn test"
             }
-        } 
+        }
 
         stage('OWASP') {
             steps {
@@ -43,7 +42,7 @@ pipeline {
 
         stage('SonarQube') {
             steps {
-                withSonarQubeEnv('sonar-server') {  
+                withSonarQubeEnv('sonar-server') {
                     sh '''
                         $SCANNER_HOME/bin/sonar-scanner \
                         -Dsonar.projectName=Shopping-Cart \
@@ -56,7 +55,7 @@ pipeline {
 
         stage('Docker Build') {
             steps {
-                sh "docker build --no-cache -t ${IMAGE_TAG} ."
+                sh "docker build --no-cache -t ${IMAGE_TAG} -f Docker/Dockerfile ."
             }
         }
 
@@ -69,13 +68,26 @@ pipeline {
                 )]) {
                     sh '''
                         echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
-                        docker tag $IMAGE_NAME:$BUILD_NUMBER $IMAGE_NAME:latest
-                        docker push $IMAGE_NAME:$BUILD_NUMBER
-                        docker push $IMAGE_NAME:latest
+                        docker push ${IMAGE_NAME}:${BUILD_NUMBER}   
+                        docker tag  ${IMAGE_NAME}:${BUILD_NUMBER} ${IMAGE_NAME}:latest  // ✅ Bug 2 fixed: push versioned image first, then tag & push latest
+                        docker push ${IMAGE_NAME}:latest
                     '''
                 }
             }
         }
 
-    }  
+    }
+
+    post {
+        always {
+            sh "docker rmi ${IMAGE_TAG} || true"  // cleanup to avoid disk fill
+            cleanWs()
+        }
+        success {
+            echo "✅ ${IMAGE_TAG} pushed successfully."
+        }
+        failure {
+            echo "❌ Pipeline failed at stage: ${env.STAGE_NAME}"
+        }
+    }
 }
