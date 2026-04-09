@@ -9,6 +9,8 @@ pipeline {
 
     environment {
         SCANNER_HOME = tool 'sonar-scanner'
+        IMAGE_NAME = "belalmahmoud81/ecart"
+       IMAGE_TAG  = "${IMAGE_NAME}:${env.BRANCH_NAME}"
     }
 
     stages {
@@ -32,14 +34,14 @@ pipeline {
             }
         } 
 
-        stage('OWASP Dependency Check') {
+        stage('OWASP') {
             steps {
                 dependencyCheck additionalArguments: '--scan ./ --format XML --format HTML', odcInstallation: 'DP'
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
 
-        stage('SonarQube Analysis') {
+        stage('SonarQube') {
             steps {
                 withSonarQubeEnv('sonar-server') {  
                     sh '''
@@ -47,6 +49,29 @@ pipeline {
                         -Dsonar.projectName=Shopping-Cart \
                         -Dsonar.java.binaries=. \
                         -Dsonar.projectKey=Shopping-Cart
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                sh "docker build --no-cache -t ${IMAGE_TAG} ."
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub',
+                    usernameVariable: 'DOCKERHUB_USER',
+                    passwordVariable: 'DOCKERHUB_PASS'
+                )]) {
+                    sh '''
+                        echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+                        docker tag $IMAGE_NAME:$BUILD_NUMBER $IMAGE_NAME:latest
+                        docker push $IMAGE_NAME:$BUILD_NUMBER
+                        docker push $IMAGE_NAME:latest
                     '''
                 }
             }
