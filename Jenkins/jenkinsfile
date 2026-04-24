@@ -23,7 +23,8 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh "mvn clean compile -DskipTests=true"
+                // FIX: must be package not compile
+                sh "mvn clean package -DskipTests=true"
             }
         }
 
@@ -35,7 +36,7 @@ pipeline {
 
         stage('OWASP') {
             steps {
-                dependencyCheck additionalArguments: '--scan ./ --format XML --format HTML', odcInstallation: 'DP'
+                dependencyCheck additionalArguments: '--scan target/ --format XML --format HTML', odcInstallation: 'DP'
                 dependencyCheckPublisher pattern: '**/dependency-check-report.xml'
             }
         }
@@ -43,19 +44,30 @@ pipeline {
         stage('SonarQube') {
             steps {
                 withSonarQubeEnv('sonar-server') {
-                    sh '''
+                    sh """
                         $SCANNER_HOME/bin/sonar-scanner \
                         -Dsonar.projectName=Shopping-Cart \
-                        -Dsonar.java.binaries=. \
-                        -Dsonar.projectKey=Shopping-Cart
-                    '''
+                        -Dsonar.projectKey=Shopping-Cart \
+                        -Dsonar.java.binaries=target/classes
+                    """
+                }
+            }
+        }
+
+        stage('SonarQube Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
                 }
             }
         }
 
         stage('Docker Build') {
             steps {
-                sh "docker build --no-cache -t ${IMAGE_NAME}:${BUILD_NUMBER} -f Docker/Dockerfile ."
+                sh """
+                    ls -lah target/
+                    docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} -f Docker/Dockerfile .
+                """
             }
         }
 
@@ -66,12 +78,14 @@ pipeline {
                     usernameVariable: 'DOCKERHUB_USER',
                     passwordVariable: 'DOCKERHUB_PASS'
                 )]) {
-                    sh '''
+                    sh """
                         echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+
                         docker push ${IMAGE_NAME}:${BUILD_NUMBER}
-                        docker tag  ${IMAGE_NAME}:${BUILD_NUMBER} ${IMAGE_NAME}:latest
+
+                        docker tag ${IMAGE_NAME}:${BUILD_NUMBER} ${IMAGE_NAME}:latest
                         docker push ${IMAGE_NAME}:latest
-                    '''
+                    """
                 }
             }
         }
@@ -83,11 +97,13 @@ pipeline {
             sh "docker rmi ${IMAGE_NAME}:${BUILD_NUMBER} || true"
             cleanWs()
         }
+
         success {
-            echo "✅ ${IMAGE_NAME}:${BUILD_NUMBER} pushed successfully."
+            echo "✅ Image pushed successfully: ${IMAGE_NAME}:${BUILD_NUMBER}"
         }
+
         failure {
-            echo "❌ Pipeline failed at stage: ${env.STAGE_NAME}"
+            echo "❌ Pipeline failed"
         }
     }
 }
