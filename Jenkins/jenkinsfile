@@ -23,7 +23,6 @@ pipeline {
 
         stage('Build') {
             steps {
-                // FIX: must be package not compile
                 sh "mvn clean package -DskipTests=true"
             }
         }
@@ -54,7 +53,13 @@ pipeline {
             }
         }
 
-
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 2, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
 
         stage('Docker Build') {
             steps {
@@ -84,6 +89,16 @@ pipeline {
             }
         }
 
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([kubeconfigFile(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
+                    sh """
+                        kubectl apply -f Kubernetes/deploymentservice.yml
+                    """
+                }
+            }
+        }
+
     }
 
     post {
@@ -93,11 +108,19 @@ pipeline {
         }
 
         success {
-            echo "✅ Image pushed successfully: ${IMAGE_NAME}:${BUILD_NUMBER}"
+            slackSend(
+                channel: '#ecart-pipeline',
+                color: 'good',
+                message: "✅ *SUCCESS:* ${env.JOB_NAME} #${env.BUILD_NUMBER}\nImage: ${IMAGE_NAME}:${BUILD_NUMBER}\n${env.RUN_DISPLAY_URL}"
+            )
         }
 
         failure {
-            echo "❌ Pipeline failed"
+            slackSend(
+                channel: '#ecart-pipeline',
+                color: 'danger',
+                message: "❌ *FAILED:* ${env.JOB_NAME} #${env.BUILD_NUMBER}\nCheck logs: ${env.RUN_DISPLAY_URL}"
+            )
         }
     }
 }
