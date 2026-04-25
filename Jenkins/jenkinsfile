@@ -95,26 +95,28 @@ pipeline {
 
     }
 
-    post {
-        always {
-            sh "docker rmi ${IMAGE_NAME}:${BUILD_NUMBER} || true"
-            sh "docker image prune -f"
-            cleanWs()
-        }
-
-        success {
-    slackSend(
-        color: 'good', 
-        message: "✅ *Build Success:* ${env.JOB_NAME} [#${env.BUILD_NUMBER}]"
-    )
-}
-failure {
-    // Adding 'tokenCredentialId' explicitly in the code can sometimes help override global bugs
-    slackSend(
-        tokenCredentialId: 'slack',
-        color: 'danger', 
-        message: "❌ *Build Failed:* ${env.JOB_NAME} [#${env.BUILD_NUMBER}]"
-    )
-}
+   post {
+    always {
+        sh "docker rmi ${IMAGE_NAME}:${BUILD_NUMBER} || true"
+        sh "docker image prune -f"
+        cleanWs()
     }
+
+    success {
+        slackSend(
+            channel: '#ecart-pipline', // Targeted channel
+            color: 'good', 
+            message: "✅ *Build Success:* ${env.JOB_NAME} [#${env.BUILD_NUMBER}]"
+        )
+    }
+
+    failure {
+        slackSend(
+            channel: '#ecart-pipline', // Targeted channel
+            tokenCredentialId: 'slack',
+            color: 'danger', 
+            message: "❌ *Build Failed:* ${env.JOB_NAME} [#${env.BUILD_NUMBER}]"
+        )
+    }
+}
 }
