@@ -98,6 +98,7 @@ pipeline {
     post {
         always {
             sh "docker rmi ${IMAGE_NAME}:${BUILD_NUMBER} || true"
+            sh "docker image prune -f"
             cleanWs()
         }
 
