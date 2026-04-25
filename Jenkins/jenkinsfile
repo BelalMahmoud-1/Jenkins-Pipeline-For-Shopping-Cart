@@ -102,19 +102,18 @@ pipeline {
         }
 
         success {
-            slackSend(
-                channel: '#ecart-pipeline',
-                color: 'good',
-                message: "✅ *SUCCESS:* ${env.JOB_NAME} #${env.BUILD_NUMBER}\nImage: ${IMAGE_NAME}:${BUILD_NUMBER}\n${env.RUN_DISPLAY_URL}"
-            )
-        }
-
-        failure {
-            slackSend(
-                channel: '#ecart-pipeline',
-                color: 'danger',
-                message: "❌ *FAILED:* ${env.JOB_NAME} #${env.BUILD_NUMBER}\nCheck logs: ${env.RUN_DISPLAY_URL}"
-            )
-        }
+    slackSend(
+        color: 'good', 
+        message: "✅ *Build Success:* ${env.JOB_NAME} [#${env.BUILD_NUMBER}]"
+    )
+}
+failure {
+    // Adding 'tokenCredentialId' explicitly in the code can sometimes help override global bugs
+    slackSend(
+        tokenCredentialId: 'slack',
+        color: 'danger', 
+        message: "❌ *Build Failed:* ${env.JOB_NAME} [#${env.BUILD_NUMBER}]"
+    )
+}
     }
 }
