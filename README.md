@@ -1,4 +1,4 @@
-# 🛒 Shopping Cart — Cloud-Native Java Application
+# 🛒 Cloud-Native Shopping Cart — DevOps & CI/CD Ready
 
 <p align="center">
   <img src="https://img.shields.io/badge/Spring_Boot-2.7.0-6DB33F?style=for-the-badge&logo=springboot&logoColor=white"/>
@@ -52,6 +52,16 @@ This architecture diagram shows the core DevOps workflow for the project:
 
 <p align="center">
   <img src="screenshots/ecart-Image%20.png" alt="Architecture Diagram" width="800"/>
+</p>
+
+## 🏃‍♂️ Application Running
+
+<p align="center">
+  <img src="screenshots/app-ruuing.png" alt="Application Running" width="800"/>
+</p>
+
+<p align="center">
+  The live application UI and workflow shown here reflect the deployed shopping cart experience running inside the cloud-native stack.
 </p>
 
 ---
