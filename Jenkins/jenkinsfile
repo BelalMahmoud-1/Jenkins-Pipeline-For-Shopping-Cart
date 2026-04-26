@@ -104,7 +104,7 @@ pipeline {
 
     success {
         slackSend(
-            channel: '#ecart-pipline', // Targeted channel
+            channel: '#ecart-pipline', 
             color: 'good', 
             message: "✅ *Build Success:* ${env.JOB_NAME} [#${env.BUILD_NUMBER}]"
         )
@@ -112,7 +112,7 @@ pipeline {
 
     failure {
         slackSend(
-            channel: '#ecart-pipline', // Targeted channel
+            channel: '#ecart-pipline', 
             tokenCredentialId: 'slack',
             color: 'danger', 
             message: "❌ *Build Failed:* ${env.JOB_NAME} [#${env.BUILD_NUMBER}]"
